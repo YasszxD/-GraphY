@@ -2,15 +2,17 @@ struct Node{
   char label;
   struct Node* next;//adjlist
   struct Node* neighbors;//
-
+  //weigth
 };
 struct graph{
   int nb_vct;
   struct Node* begin;
-  int is_oriented;
   int nb_edge;
 };
-
+struct print{
+  char* str;
+  int len;
+};
 struct graph* new_graph();
 int is_empty(struct graph* G);//1 True(empty) ,0 False
 int add_node(struct graph* G,char lbl);//1 added 0 not added
@@ -19,6 +21,7 @@ int has_node(struct graph* G,char lbl);//1 there is node 0 no
 int has_edge(struct graph* G,char lbl_src , char lbl_dest);//1 there is edge 0 no
 void del_edge(struct graph* G,char lbl_src , char lbl_dest);
 void del_node(struct graph* G,char lbl);
+struct print* print_graph(struct graph* G);
 /*****************************************************/
 int graph_order(struct graph* G);
 int vct_order_exit(struct graph* G,char lbl);//sortant

@@ -25,7 +25,11 @@ if (lol!=NULL){
 for (j = 0; j < graph_order(g1); j++) {
   printf("%c\t",*(lol+j));
 }}
-
+printf("\n" );
+struct print* p=print_graph(g1);
+char* pt=p->str;
+for(;pt<p->str+p->len;pt++)
+  printf("%c",*pt );
 
   return 0;
 }

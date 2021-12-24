@@ -138,6 +138,64 @@ void del_node(struct graph* G,char lbl){
   }
 }
 /****************************************************************************/
+struct print* print_graph(struct graph* G){
+  struct print* ptr = malloc(1*sizeof(struct print));
+  ptr->str = malloc(100*sizeof(char));
+  char* a=ptr->str;
+  ptr->len=0;
+  struct Node* courant = G->begin;
+  struct Node* parcour;
+  while (courant!=NULL){
+    parcour=courant->neighbors;
+    while(parcour!=NULL){
+      *a=courant->label;
+				a++;
+				*a=' ';
+				a++;
+				*a='i';
+				a++;
+				*a='s';
+				a++;
+				*a=' ';
+				a++;
+				*a='c';
+				a++;
+				*a='o';
+				a++;
+				*a='n';
+				a++;
+				*a='n';
+				a++;
+				*a='e';
+				a++;
+				*a='c';
+				a++;
+				*a='t';
+				a++;
+				*a='e';
+				a++;
+				*a='d';
+				a++;
+				*a=' ';
+				a++;
+				*a='t';
+				a++;
+				*a='o';
+				*a++;
+				*a=' ';
+				a++;
+				*a=parcour->label;
+				a++;
+				*a='\n';
+				a++;
+        ptr->len+=20;
+      parcour=parcour->neighbors;
+    }
+    courant=courant->next;
+  }
+  return ptr;
+}
+/****************************************************************************/
 int graph_order(struct graph* G){return G->nb_vct;}
 
 int vct_order_exit(struct graph* G,char lbl){
