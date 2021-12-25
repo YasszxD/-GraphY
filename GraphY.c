@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "GraphY.h"
+
+#define INF 99999
 //graph oriente non pondere
 /******************************edit graph**************************/
 //create  new graph
@@ -32,7 +34,7 @@ int add_node(struct graph* G,char lbl){
   new_node->next=NULL;
   new_node->label=lbl;
   new_node->neighbors=NULL;
-
+  new_node->weight=0;
   if (is_empty(G)) {
     G->begin=new_node;
   }
@@ -61,7 +63,7 @@ int add_node(struct graph* G,char lbl){
   return 1;
 }
 
-int add_edge(struct graph* G,char lbl_src , char lbl_dest){
+int add_edge(struct graph* G,char lbl_src , char lbl_dest,int wg){
 
   if(has_node(G,lbl_src)==-1 || has_node(G,lbl_dest)==-1) return 0;
   struct Node* src = malloc(sizeof(struct Node));
@@ -74,6 +76,7 @@ int add_edge(struct graph* G,char lbl_src , char lbl_dest){
   }
   struct Node* new_neighbor = malloc(sizeof(struct Node));
   new_neighbor->label=lbl_dest;
+  new_neighbor->weight=wg;
   new_neighbor->next=NULL;
   new_neighbor->neighbors=NULL;
   if(src->neighbors == NULL){//last node or first;
@@ -97,9 +100,9 @@ int has_edge(struct graph* G,char lbl_src , char lbl_dest){
   while (src->neighbors != NULL ) {
     src=src->neighbors;
     if(src->label==lbl_dest)//serach dest;
-      return 1;
+      return src->weight;
   }
-  return 0;
+  return INF;
 }
 void del_edge(struct graph* G,char lbl_src , char lbl_dest){
   if(has_node(G,lbl_src)==-1||has_node(G,lbl_dest)==-1) return;//dst or src not in graph
@@ -228,9 +231,6 @@ int vct_order_entre(struct graph* G,char lbl){
     return count;
 }
 
-int is_cyclic(struct graph* G){
-  /*tritopologie*/
-}
 
 int is_simple(struct graph* G){ // node is not link with herself or has 2 link with same node
   struct Node* courant = G->begin;
@@ -258,7 +258,7 @@ int is_complet(struct graph* G){
 }
 /***************************************************************************/
 //matrice d adjacence
-int** matrix_square(int or){
+int** matrix_square(int or,int w){
   //int or =k;
   int** mat = malloc(or*sizeof(int*));
   int** x =mat;
@@ -270,7 +270,7 @@ int** matrix_square(int or){
   int* j;
   for (i;i<mat+or;i++){
     for(j=*i;j<*i+or;j++){
-      *j=0;
+      *j=w;
     }
   }
   return mat;
@@ -278,14 +278,13 @@ int** matrix_square(int or){
 
 int** adjency_matrix(struct graph* G){
   int or = graph_order(G);
-  int** adj_mat=matrix_square(or);
+  int** adj_mat=matrix_square(or,0);
   struct Node* courant = G->begin;
   struct Node* parcour;
   int i=0;
   while(courant!=NULL){
     parcour = courant->neighbors;
     while (parcour!=NULL) {
-      //adj_mat[parcour->label][courant->label]-=1;
       adj_mat[i][has_node(G,parcour->label)]+=1;
       parcour=parcour->neighbors;
     }
@@ -294,6 +293,32 @@ int** adjency_matrix(struct graph* G){
   }
   return adj_mat;
 }
+int** weighted_adjency_matrix(struct graph* G){
+  int or = graph_order(G);
+  int** adj_mat=matrix_square(or,INF);
+  int** parc_zero=adj_mat;
+  //init 0 for the same node;
+  int i = 0;
+  for (; i < graph_order(G); i++) {
+    *(*(parc_zero+i)+i)=0;
+  }
+  struct Node* courant = G->begin;
+  struct Node* parcour;
+  i=0;
+  while(courant!=NULL){
+    parcour = courant->neighbors;
+    while (parcour!=NULL) {
+      if(has_edge(G,courant->label,parcour->label)<adj_mat[i][has_node(G,parcour->label)]){
+          adj_mat[i][has_node(G,parcour->label)]=has_edge(G,courant->label,parcour->label);
+      }
+      parcour=parcour->neighbors;
+    }
+    courant=courant->next;
+    i++;
+  }
+  return adj_mat;
+}
+
 int** matrix(int or,int vct){
   //int or =k;
   int** mat = malloc(or*sizeof(int*));
@@ -383,4 +408,80 @@ char* topology_ordre(struct graph* G){
     }
   }
 return ret;
+}
+int is_cyclic(struct graph* G){if (topology_ordre(G)==NULL) return 1; return 0;}
+/*****************************************************/
+struct floyd* floydwarshall(struct graph* G){
+  int or = graph_order(G);
+  struct floyd* ret = malloc(sizeof(struct floyd));
+  ret->P=matrix_square(or,0);
+  //init P
+  int i = 0,j=0,k=0;
+  int** parc_p=ret->P;
+  for (i=0; i < or; i++) {
+    for (j=0; j < or; j++) {
+      *(*(parc_p+i)+j)=j;//j ou j+1
+    }
+  }
+  ret->D=weighted_adjency_matrix(G);
+  for (i=0; i < or; i++) {
+    for (j=0; j < or; j++) {
+      for (k=0; k < or; k++) {
+        if(ret->D[i][k]+ret->D[k][j]<ret->D[i][j]){
+          ret->D[i][j]=ret->D[i][k]+ret->D[k][j];
+          ret->P[i][j]=k;
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+struct print* floydwarshall_result(struct graph* G,char lbl1 ,char lbl2 ){
+  struct floyd* f=floydwarshall(G);
+  struct print* p=malloc(sizeof(struct print));
+  //node number
+  int number1= has_node(G,lbl1),number2= has_node(G,lbl2);
+  p->dist=f->D[number1][number2];
+  //chemin
+  p->len=2;
+  int* res_int=malloc(100*sizeof(int));
+  int* parc_res_int=res_int;
+  *parc_res_int=number1;
+  parc_res_int++;
+  *parc_res_int=number2;
+  int i=0,k=0,j,z;
+  int temp1=number1,temp2=number2;
+  do {
+    if(f->P[temp1][temp2]==temp1||f->P[temp1][temp2]==temp2)
+      i++;
+    else{
+      z=p->len;
+    //shift
+      for(;z>i+1;z--){
+        *(res_int+z)=*(res_int+z-1);
+      }
+      *(res_int+z) = f->P[temp1][temp2];
+      p->len++;
+    }
+    temp1=*(res_int+i);
+    temp2=*(res_int+i+1);
+  /*for(j=0;j<p->len;j++)
+      printf("%d\t",*(res_int+j));
+    printf("\n" );*/
+  } while(temp2!=number2);
+  p->chemin=res_int;
+  //print with label_node_i
+  return p;
+}
+int is_connex(struct graph* G){
+  int or = graph_order(G);
+  int** ret = floydwarshall(G)->D;
+  int i=0, j=0;
+  for (i = 0; i < or; i++) {
+    for (j = 0; j < or; j++) {
+      if(*(*(ret+i)+j)==INF) return 0;
+    }
+  }
+  return 1;
 }
